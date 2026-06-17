@@ -1,0 +1,273 @@
+{
+  "name": "W-MWEEK",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 6 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "6efac395-888e-49f9-ab4b-ee0b02907136",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "e59d2c18-c886-4e76-b815-c85a045ec9b5",
+          "mode": "id",
+          "cachedResultName": "Energy & Friction Log"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "62156c02-6577-479b-876f-cc196323eae9",
+      "name": "Read EF Log 30d",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        96
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "0e0b8616-19af-4517-b928-82c7118ccd7f",
+          "mode": "id",
+          "cachedResultName": "Model Week"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "f9762ed7-7466-495d-a969-ef97f1e9cd28",
+      "name": "Read All Model Week",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        96
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\nconst ef = $('Read EF Log 30d').all();\nconst mw = $('Read All Model Week').all();\nconst cutoff = Date.now() - 30 * 86400000;\nconst totals = {}, counts = {};\nfor (const it of ef) {\n  const draw = it.json.property_date && it.json.property_date.start;\n  const lvl = it.json.property_energy_level;\n  if (!draw || lvl === undefined || lvl === null) continue;\n  if (new Date(draw).getTime() < cutoff) continue;\n  const d = days[new Date(draw).getDay()];\n  totals[d] = (totals[d] || 0) + Number(lvl);\n  counts[d] = (counts[d] || 0) + 1;\n}\nconst flagged = [];\nfor (const d of days) {\n  if (!counts[d]) continue;\n  const avg = totals[d] / counts[d];\n  if (avg < 2.5) flagged.push({ day: d, avg: avg.toFixed(1) });\n}\nconst norm = (s) => String(s || '').replace(/-/g, '');\nconst month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });\nconst out = [];\nfor (const row of mw) {\n  const f = flagged.find(x => x.day === (row.json.property_day || ''));\n  if (!f) continue;\n  const pageId32 = norm(row.json.id) || (String(row.json.url||'').replace(/-/g,'').match(/[0-9a-f]{32}/i)||[''])[0];\n  const proposal = `Average energy on ${f.day}s this month was ${f.avg}/5 — consider moving deep-focus blocks off ${f.day}.`;\n  out.push({ json: { pageId32, proposal } });\n}\nreturn out;"
+      },
+      "id": "905d7a77-ebac-4f41-804b-6b5518186e30",
+      "name": "Compute Day Averages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.pageId32 }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Proposed Changes\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $json.proposal }}\" } } ] }\n  }\n}",
+        "options": {}
+      },
+      "id": "6264608d-1228-4cff-aed7-88888b66a888",
+      "name": "Update Model Week Rows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\nconst ef = $('Read EF Log 30d').all();\nconst mw = $('Read All Model Week').all();\nconst cutoff = Date.now() - 30 * 86400000;\nconst totals = {}, counts = {};\nfor (const it of ef) {\n  const draw = it.json.property_date && it.json.property_date.start;\n  const lvl = it.json.property_energy_level;\n  if (!draw || lvl === undefined || lvl === null) continue;\n  if (new Date(draw).getTime() < cutoff) continue;\n  const d = days[new Date(draw).getDay()];\n  totals[d] = (totals[d] || 0) + Number(lvl);\n  counts[d] = (counts[d] || 0) + 1;\n}\nconst flagged = [];\nfor (const d of days) {\n  if (!counts[d]) continue;\n  const avg = totals[d] / counts[d];\n  if (avg < 2.5) flagged.push({ day: d, avg: avg.toFixed(1) });\n}\nconst norm = (s) => String(s || '').replace(/-/g, '');\nconst month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });\nconst active = flagged.length > 0;\nconst details = active\n  ? `Proposed changes ready for ${month}: ${flagged.map(f => f.day).join(', ')}.`\n  : `No low-energy days detected for ${month}.`;\nreturn [{ json: { active, details } }];"
+      },
+      "id": "7b4e9e75-1434-4980-8329-6e668f8397e0",
+      "name": "Summarize MWEEK Review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.notion.com/v1/pages/3801a0ad-6469-80cf-88de-f9d5b12d9506",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Active\": { \"checkbox\": {{ $('Summarize MWEEK Review').item.json.active }} },\n    \"Details\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $('Summarize MWEEK Review').item.json.details }}\" } } ] },\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+        "options": {}
+      },
+      "id": "db033e33-9887-4087-b5de-6857f63c979e",
+      "name": "Update MWEEK Review Card",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        192
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.notion.com/v1/pages/3801a0ad-6469-807c-82a3-d04591caa2e9",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+        "options": {}
+      },
+      "id": "ec5862cd-69dc-416c-a507-df5b4293b664",
+      "name": "Update W-MWEEK Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        192
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read EF Log 30d",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read EF Log 30d": {
+      "main": [
+        [
+          {
+            "node": "Read All Model Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read All Model Week": {
+      "main": [
+        [
+          {
+            "node": "Compute Day Averages",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Summarize MWEEK Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Day Averages": {
+      "main": [
+        [
+          {
+            "node": "Update Model Week Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize MWEEK Review": {
+      "main": [
+        [
+          {
+            "node": "Update MWEEK Review Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update MWEEK Review Card": {
+      "main": [
+        [
+          {
+            "node": "Update W-MWEEK Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "0d6e92fa-b815-4c23-854f-d16a1fbe1786",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+  },
+  "id": "ebC5OzRkidCcYuLh",
+  "tags": []
+}

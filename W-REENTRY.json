@@ -1,0 +1,179 @@
+{
+  "name": "W-REENTRY",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "d9674a7b-9349-4299-beca-dd24a61fe2d3",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "37a1a0ad-6469-807e-9a01-c71a0f36b1c1",
+          "mode": "id",
+          "cachedResultName": "Inbox"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "5848d147-4086-49eb-b634-882d304ce9c6",
+      "name": "Read Inbox Recent",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $('Read Inbox Recent').all();\nlet active = false, details = 'No gap detected.';\nif (!items.length) {\n  details = 'No Inbox items found.';\n} else {\n  let latest = null;\n  for (const it of items) {\n    const d = it.json.property_last_touched && it.json.property_last_touched.start;\n    if (d) { const t = new Date(d); if (!latest || t > latest) latest = t; }\n  }\n  if (!latest) { details = 'No Last Touched date found.'; }\n  else {\n    const diff = (Date.now() - latest.getTime()) / 86400000;\n    if (diff >= 3) { active = true; details = `Gap detected: last activity ${Math.floor(diff)} days ago. Review Inbox and Tickler at next session.`; }\n    else { details = `Last activity ${diff.toFixed(1)} days ago — no gap.`; }\n  }\n}\nreturn [{ json: { active, details } }];"
+      },
+      "id": "f2ac73cf-fdb2-4a4d-a57d-fc79601ee7af",
+      "name": "Check Reentry Gap",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.notion.com/v1/pages/3801a0ad-6469-80c8-beb0-d812b639b2cd",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"properties\": { \"Active\": { \"checkbox\": {{ $(\"Check Reentry Gap\").item.json.active }} }, \"Details\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $(\"Check Reentry Gap\").item.json.details }}\" } } ] }, \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } } } }",
+        "options": {}
+      },
+      "id": "02beb982-ff4f-49cb-b4f3-cc3a37e41b35",
+      "name": "Update Reentry Mode",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.notion.com/v1/pages/3801a0ad-6469-8079-92eb-e6479be5b1e7",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"properties\": { \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } } } }",
+        "options": {}
+      },
+      "id": "0d6657be-8fc2-417c-9a67-16e89bdf1b6e",
+      "name": "Update W-REENTRY Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Inbox Recent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Inbox Recent": {
+      "main": [
+        [
+          {
+            "node": "Check Reentry Gap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Reentry Gap": {
+      "main": [
+        [
+          {
+            "node": "Update Reentry Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Reentry Mode": {
+      "main": [
+        [
+          {
+            "node": "Update W-REENTRY Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "07045fc8-3367-43ff-8de6-7b9c78f89529",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+  },
+  "id": "fUraV9Ygud9DbuF1",
+  "tags": []
+}

@@ -1,0 +1,218 @@
+{
+  "name": "W-STALE",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 6 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "64cfcfe1-c7f5-4bff-8dc3-4fe22b850170",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "37f1a0ad-6469-8063-b0ff-ff52690140ba",
+          "mode": "id",
+          "cachedResultName": "Projects"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "670decf8-a348-46a1-860c-30904fab78f7",
+      "name": "Read Active Projects",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "37b1a0ad-6469-8040-8ff5-d5e619079a08",
+          "mode": "id",
+          "cachedResultName": "Sprint Goals"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "d3aefe21-46ec-43cd-b325-0d31999801f4",
+      "name": "Read Active Sprint Goals",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const STALE = 21;\nconst now = Date.now();\nconst ltOf = (i) => i.json.property_last_touched && i.json.property_last_touched.start;\nconst nm = (i) => i.json.property_name || i.json.name || 'Unnamed';\nconst scan = (items) => {\n  const out = [];\n  for (const it of items) {\n    if ((it.json.property_state || '') !== 'Active') continue;\n    const raw = ltOf(it);\n    if (!raw) { out.push(`${nm(it)} (no Last Touched date)`); continue; }\n    const days = (now - new Date(raw).getTime()) / 86400000;\n    if (days >= STALE) out.push(`${nm(it)} (${Math.floor(days)} days)`);\n  }\n  return out;\n};\nconst sp = scan($('Read Active Projects').all());\nconst sg = scan($('Read Active Sprint Goals').all());\nconst active = sp.length > 0 || sg.length > 0;\nconst details = `Projects: ${sp.length ? sp.join(', ') + '.' : 'none.'} Sprint Goals: ${sg.length ? sg.join(', ') + '.' : 'none.'}`;\nreturn [{ json: { active, details } }];"
+      },
+      "id": "c7f48525-58d1-4944-81f8-e412106379cc",
+      "name": "Find Stale Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.notion.com/v1/pages/3801a0ad-6469-8070-9e44-c6ba54038d20",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Active\": { \"checkbox\": {{ $('Find Stale Items').item.json.active }} },\n    \"Details\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $('Find Stale Items').item.json.details }}\" } } ] },\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+        "options": {}
+      },
+      "id": "95c1629f-f97a-4341-b99d-52427130ce04",
+      "name": "Update Staleness Flags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.notion.com/v1/pages/3801a0ad-6469-8010-aad5-f7987ac3aa9f",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+        "options": {}
+      },
+      "id": "212d9865-ebc4-499d-81a0-64d68b6b5393",
+      "name": "Update W-STALE Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Active Projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Active Projects": {
+      "main": [
+        [
+          {
+            "node": "Read Active Sprint Goals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Active Sprint Goals": {
+      "main": [
+        [
+          {
+            "node": "Find Stale Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Stale Items": {
+      "main": [
+        [
+          {
+            "node": "Update Staleness Flags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Staleness Flags": {
+      "main": [
+        [
+          {
+            "node": "Update W-STALE Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "551c1114-f3cb-4769-80b4-aff896ea99cd",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+  },
+  "id": "cgISYQefpUPyHIUl",
+  "tags": []
+}
