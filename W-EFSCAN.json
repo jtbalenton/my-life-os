@@ -1,0 +1,204 @@
+{
+  "name": "W-EFSCAN",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 6 * * 0"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -976,
+        -448
+      ],
+      "id": "55508dc3-2d21-4177-baac-e70a6c88733d",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "e59d2c18-c886-4e76-b815-c85a045ec9b5",
+          "mode": "list",
+          "cachedResultName": "Energy & Friction Log",
+          "cachedResultUrl": "https://app.notion.com/p/e59d2c18c8864e76b815c85a045ec9b5"
+        },
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Date|date",
+              "condition": "past_week"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -640,
+        -240
+      ],
+      "id": "f4e8a0ab-d184-4878-8f5d-319c73daaa40",
+      "name": "EFRead",
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "var items = $input.all();\nvar energySum = 0;\nvar energyCount = 0;\nvar highCount = 0;\nvar medCount = 0;\nvar lowCount = 0;\nvar noneCount = 0;\nvar autoList = [];\n\nfor (var i = 0; i < items.length; i++) {\n  var j = items[i].json;\n  var level = j.property_energy_level;\n  if (level !== null && level !== undefined) {\n    energySum = energySum + level;\n    energyCount = energyCount + 1;\n  }\n  var sev = j.property_friction_severity;\n  if (sev === 'High') { highCount = highCount + 1; }\n  if (sev === 'Medium') { medCount = medCount + 1; }\n  if (sev === 'Low') { lowCount = lowCount + 1; }\n  if (sev === 'None') { noneCount = noneCount + 1; }\n  if (j.property_automatable === true) {\n    autoList.push(j.property_entry || 'untitled');\n  }\n}\n\nvar avgEnergy = energyCount > 0 ? (energySum / energyCount).toFixed(1) : 'n/a';\nvar friction = highCount + ' high, ' + medCount + ' medium, ' + lowCount + ' low, ' + noneCount + ' none';\nvar auto = autoList.length > 0 ? autoList.length + ' automatable: ' + autoList.join('; ') + '.' : 'No automatable entries.';\nvar details = 'Avg energy ' + avgEnergy + '/5. Friction: ' + friction + '. ' + auto;\nvar now = new Date().toISOString();\n\nreturn [{ json: { details: details, now: now } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        -96
+      ],
+      "id": "6bd24c2b-a8e7-42e7-90b8-c68197e52138",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.notion.com/v1/pages/3801a0ad646980a6bd22e70183372e2b",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Details\": {\n      \"rich_text\": [{ \"text\": { \"content\": \"{{$json.details}}\" } }]\n    },\n    \"Active\": { \"checkbox\": true },\n    \"Last Updated\": { \"date\": { \"start\": \"{{$json.now}}\" } }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -176,
+        -96
+      ],
+      "id": "4a6ad1bc-6db2-4111-a516-c7a237b65967",
+      "name": "Write (Weekly EF Pattern Summary)",
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.notion.com/v1/pages/3801a0ad64698002bef4d5693cb4e4ea",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Last Updated\": { \"date\": { \"start\": \"{{$('Code').item.json.now}}\" } }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        32,
+        -96
+      ],
+      "id": "b0e538cb-944f-4d37-95ba-67a9917693b0",
+      "name": "Heartbeat",
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "EFRead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EFRead": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Write (Weekly EF Pattern Summary)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write (Weekly EF Pattern Summary)": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "cc959fff-5601-4b59-b8d0-5ae65cae353f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+  },
+  "id": "8OEw6pcqd9cuwI6T",
+  "tags": []
+}

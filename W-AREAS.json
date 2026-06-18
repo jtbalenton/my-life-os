@@ -1,0 +1,200 @@
+{
+  "name": "W-AREAS",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 6 * * 1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -880,
+        -416
+      ],
+      "id": "7779c8cd-3c05-4759-b0de-17bb1506d6e3",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.notion.com/v1/pages/3801a0ad646980c3a7dce3108dafed6a",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Active\": {\n      \"checkbox\": true\n    },\n    \"Details\": {\n      \"rich_text\": [\n        {\n          \"text\": {\n            \"content\": \"{{$('Notion Read (Areas)').item.json['Name']}}\"\n          }\n        }\n      ]\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -432,
+        -176
+      ],
+      "id": "1872ae79-6394-4ea6-bd51-782a3966bc89",
+      "name": "HTTP Request",
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "37f1a0ad-6469-80e9-a893-e84b61ed41bc",
+          "mode": "list",
+          "cachedResultName": "Areas",
+          "cachedResultUrl": "https://app.notion.com/p/37f1a0ad646980e9a893e84b61ed41bc"
+        },
+        "filterType": "manual",
+        "options": {
+          "sort": {
+            "sortValue": [
+              {
+                "key": "Last Review Date|date",
+                "direction": "ascending"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -656,
+        -304
+      ],
+      "id": "00063c2b-cd48-4194-8e0f-03d9ef2c85ea",
+      "name": "Notion Read (Areas)",
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{$('Notion Read (Areas)').item.json['url'].split('/p/')[1]}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Last Review Date\": {\n      \"date\": {\n        \"start\": \"{{$now.toFormat('yyyy-MM-dd')}}\"\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -192,
+        -112
+      ],
+      "id": "52673ec2-c709-450a-8d38-652878023658",
+      "name": "HTTP Request PATCH",
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.notion.com/v1/pages/3801a0ad646980bfbb24d946cf8ca4b6",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Last Updated\": {\n      \"date\": {\n        \"start\": \"{{$now.toFormat('yyyy-MM-dd')}}\"\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        0,
+        -112
+      ],
+      "id": "55c39430-b97d-4516-82e7-596fae0c8a6a",
+      "name": "HTTP Request Patch - Heartbeat (W-AREAS)",
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Notion Read (Areas)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion Read (Areas)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request PATCH",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request PATCH": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request Patch - Heartbeat (W-AREAS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "085ea726-f30f-40d9-9e71-471129ec0de9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+  },
+  "id": "UWZMFoJZy99bhSIE",
+  "tags": []
+}

@@ -1,0 +1,276 @@
+{
+  "name": "W-TDEBT",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 7 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -352,
+        48
+      ],
+      "id": "d377edab-53ca-4ed5-8ad4-9edbae032f7d",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const STATUS_PAGE_ID = '3801a0ad-6469-8003-821f-fca76635f6b8';\n\nconst inbox = $('Inbox').all();\nconst count = inbox.length;\n\nlet oldestDays = 0;\nlet details = '0 items';\n\nif (count > 0) {\n  const oldestRaw = inbox[0].json['property_last_touched']?.start;\n  const oldestDate = new Date(oldestRaw);\n  const now = new Date();\n  oldestDays = Math.floor((now - oldestDate) / (1000 * 60 * 60 * 24));\n  details = `${count} items, oldest ${oldestDays} days`;\n}\n\nconst flag = (count > 15) || (oldestDays > 7);\n\nreturn [{\n  json: {\n    pageId: STATUS_PAGE_ID,\n    active: flag,\n    details: details,\n    lastUpdated: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        32
+      ],
+      "id": "14594723-9146-4d92-9f5e-d2ff420ae657",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "37a1a0ad-6469-807e-9a01-c71a0f36b1c1",
+          "mode": "list",
+          "cachedResultName": "Inbox",
+          "cachedResultUrl": "https://app.notion.com/p/37a1a0ad6469807e9a01c71a0f36b1c1"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Routing Status|select",
+              "condition": "equals",
+              "selectValue": "Ambiguous"
+            },
+            {
+              "key": "Routing Status|select",
+              "condition": "equals",
+              "selectValue": "Uncategorized"
+            }
+          ]
+        },
+        "options": {
+          "sort": {
+            "sortValue": [
+              {
+                "key": "Last Touched|date",
+                "direction": "ascending"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -96,
+        16
+      ],
+      "id": "549896e0-4a06-4582-8420-a3173768c428",
+      "name": "Inbox",
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "3801a0ad-6469-8057-8548-f73c84267fdd",
+          "mode": "list",
+          "cachedResultName": "System Status",
+          "cachedResultUrl": "https://app.notion.com/p/3801a0ad646980578548f73c84267fdd"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "equals",
+              "titleValue": "Triage Debt"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        128,
+        16
+      ],
+      "id": "da8f6d7c-b089-43c4-925b-a99ee8c5b921",
+      "name": "StatusRow",
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.pageId }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "=Active|checkbox",
+              "checkboxValue": true
+            },
+            {
+              "key": "Details|rich_text",
+              "textContent": "={{ $json.details }}"
+            },
+            {
+              "key": "Last Updated|date",
+              "date": "={{ $json.lastUpdated }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        16
+      ],
+      "id": "89f24dac-172a-4e16-b074-6bac3a9e7763",
+      "name": "Write Triage Debt",
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "https://app.notion.com/p/W-TDEBT-3801a0ad646980a88628c77997b8be20",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Last Updated|date",
+              "date": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        16
+      ],
+      "id": "e8210648-8014-4b25-8674-46be192613a7",
+      "name": "Heartbeat",
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Inbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inbox": {
+      "main": [
+        [
+          {
+            "node": "StatusRow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "StatusRow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Write Triage Debt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Triage Debt": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "659265fd-1d7c-44fb-bcf9-5a236a184707",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+  },
+  "id": "iVbs35yXMmwV5zo3",
+  "tags": []
+}
