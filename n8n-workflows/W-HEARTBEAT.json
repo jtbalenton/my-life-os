@@ -1,7 +1,20 @@
 {
+  "updatedAt": "2026-06-17T22:38:27.932Z",
+  "createdAt": "2026-06-17T22:38:27.932Z",
+  "id": "kmyILCqTiHyMDoZt",
   "name": "W-HEARTBEAT",
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
+      "id": "bea2f630-2c73-46e0-babd-dbdeb5705ca5",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -11,17 +24,17 @@
             }
           ]
         }
-      },
-      "id": "bea2f630-2c73-46e0-babd-dbdeb5705ca5",
-      "name": "Schedule Trigger",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.3,
-      "position": [
-        0,
-        0
-      ]
+      }
     },
     {
+      "id": "9d533c76-abe7-4bfb-9445-8eb4ff195f96",
+      "name": "Read All Heartbeat Rows",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
       "parameters": {
         "resource": "databasePage",
         "operation": "getAll",
@@ -32,16 +45,9 @@
           "cachedResultName": "System Status"
         },
         "returnAll": true,
+        "simple": true,
         "options": {}
       },
-      "id": "9d533c76-abe7-4bfb-9445-8eb4ff195f96",
-      "name": "Read All Heartbeat Rows",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [
-        224,
-        0
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -50,9 +56,6 @@
       }
     },
     {
-      "parameters": {
-        "jsCode": "const items = $('Read All Heartbeat Rows').all()\n  .filter(i => (i.json.property_item_type || '') === 'Job Heartbeat');\nconst now = Date.now();\nfunction expMs(c) {\n  if (!c) return null;\n  const s = String(c).toLowerCase();\n  if (s.includes('20 min')) return 20*60*1000*1.5;\n  if (s.includes('30 min')) return 30*60*1000*1.5;\n  if (s.includes('daily'))   return 24*3600*1000*1.5;\n  if (s.includes('weekly'))  return 7*24*3600*1000*1.5;\n  if (s.includes('monthly')) return 31*24*3600*1000*1.5;\n  return null;\n}\nconst overdue = [];\nfor (const it of items) {\n  const name = it.json.property_name || it.json.name || 'Unknown';\n  const cadence = it.json.property_expected_cadence;\n  const lu = it.json.property_last_updated && it.json.property_last_updated.start;\n  const ems = expMs(cadence);\n  if (!ems) continue;\n  if (!lu) { overdue.push(`${name} (never run)`); continue; }\n  const elapsed = now - new Date(lu).getTime();\n  if (elapsed > ems) overdue.push(`${name} (${Math.floor(elapsed/3600000)}h ago, expected: ${cadence})`);\n}\nconst active = overdue.length > 0;\nconst details = active ? `Overdue: ${overdue.join('. ')}` : 'All jobs healthy.';\nreturn [{ json: { active, details } }];"
-      },
       "id": "301bb5ae-9ada-4c5d-8bc3-a204d0376614",
       "name": "Find Overdue Jobs",
       "type": "n8n-nodes-base.code",
@@ -60,9 +63,21 @@
       "position": [
         448,
         0
-      ]
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $('Read All Heartbeat Rows').all()\n  .filter(i => (i.json.property_item_type || '') === 'Job Heartbeat');\nconst now = Date.now();\nfunction expMs(c) {\n  if (!c) return null;\n  const s = String(c).toLowerCase();\n  if (s.includes('20 min')) return 20*60*1000*1.5;\n  if (s.includes('30 min')) return 30*60*1000*1.5;\n  if (s.includes('daily'))   return 24*3600*1000*1.5;\n  if (s.includes('weekly'))  return 7*24*3600*1000*1.5;\n  if (s.includes('monthly')) return 31*24*3600*1000*1.5;\n  return null;\n}\nconst overdue = [];\nfor (const it of items) {\n  const name = it.json.property_name || it.json.name || 'Unknown';\n  const cadence = it.json.property_expected_cadence;\n  const lu = it.json.property_last_updated && it.json.property_last_updated.start;\n  const ems = expMs(cadence);\n  if (!ems) continue;\n  if (!lu) { overdue.push(`${name} (never run)`); continue; }\n  const elapsed = now - new Date(lu).getTime();\n  if (elapsed > ems) overdue.push(`${name} (${Math.floor(elapsed/3600000)}h ago, expected: ${cadence})`);\n}\nconst active = overdue.length > 0;\nconst details = active ? `Overdue: ${overdue.join('. ')}` : 'All jobs healthy.';\nreturn [{ json: { active, details } }];"
+      }
     },
     {
+      "id": "5bedc5dd-15e9-406f-b807-5fcdd11608ea",
+      "name": "Update Job Health Card",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        0
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "https://api.notion.com/v1/pages/3801a0ad-6469-805e-842d-c5d20e37a22f",
@@ -73,14 +88,6 @@
         "jsonBody": "={\n  \"properties\": {\n    \"Active\": { \"checkbox\": {{ $('Find Overdue Jobs').item.json.active }} },\n    \"Details\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $('Find Overdue Jobs').item.json.details }}\" } } ] },\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
         "options": {}
       },
-      "id": "5bedc5dd-15e9-406f-b807-5fcdd11608ea",
-      "name": "Update Job Health Card",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.3,
-      "position": [
-        672,
-        0
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -89,6 +96,14 @@
       }
     },
     {
+      "id": "4ac8a2f1-fc0a-4ce3-b2b9-a70a1d35aced",
+      "name": "Update W-HEARTBEAT Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        0
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "https://api.notion.com/v1/pages/3801a0ad-6469-80d3-a16c-ee3641afc1d2",
@@ -99,14 +114,6 @@
         "jsonBody": "={\n  \"properties\": {\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
         "options": {}
       },
-      "id": "4ac8a2f1-fc0a-4ce3-b2b9-a70a1d35aced",
-      "name": "Update W-HEARTBEAT Heartbeat",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.3,
-      "position": [
-        896,
-        0
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -115,7 +122,6 @@
       }
     }
   ],
-  "pinData": {},
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -162,18 +168,204 @@
       ]
     }
   },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate",
     "availableInMCP": true
   },
-  "versionId": "b92360d0-3ac6-48ed-8fca-60ede10d9da1",
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
   "meta": {
     "aiBuilderAssisted": true,
-    "builderVariant": "mcp",
-    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+    "builderVariant": "mcp"
   },
-  "id": "kmyILCqTiHyMDoZt",
+  "pinData": null,
+  "versionId": "b92360d0-3ac6-48ed-8fca-60ede10d9da1",
+  "activeVersionId": "b92360d0-3ac6-48ed-8fca-60ede10d9da1",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-06-17T22:38:27.934Z",
+      "createdAt": "2026-06-17T22:38:27.934Z",
+      "role": "workflow:owner",
+      "workflowId": "kmyILCqTiHyMDoZt",
+      "projectId": "rHH3woewt9mPybP5"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-06-17T22:38:27.936Z",
+    "createdAt": "2026-06-17T22:38:27.936Z",
+    "versionId": "b92360d0-3ac6-48ed-8fca-60ede10d9da1",
+    "workflowId": "kmyILCqTiHyMDoZt",
+    "nodes": [
+      {
+        "id": "bea2f630-2c73-46e0-babd-dbdeb5705ca5",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 0 9 * * *"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "9d533c76-abe7-4bfb-9445-8eb4ff195f96",
+        "name": "Read All Heartbeat Rows",
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "resource": "databasePage",
+          "operation": "getAll",
+          "databaseId": {
+            "__rl": true,
+            "value": "3801a0ad-6469-8057-8548-f73c84267fdd",
+            "mode": "id",
+            "cachedResultName": "System Status"
+          },
+          "returnAll": true,
+          "simple": true,
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "id": "301bb5ae-9ada-4c5d-8bc3-a204d0376614",
+        "name": "Find Overdue Jobs",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const items = $('Read All Heartbeat Rows').all()\n  .filter(i => (i.json.property_item_type || '') === 'Job Heartbeat');\nconst now = Date.now();\nfunction expMs(c) {\n  if (!c) return null;\n  const s = String(c).toLowerCase();\n  if (s.includes('20 min')) return 20*60*1000*1.5;\n  if (s.includes('30 min')) return 30*60*1000*1.5;\n  if (s.includes('daily'))   return 24*3600*1000*1.5;\n  if (s.includes('weekly'))  return 7*24*3600*1000*1.5;\n  if (s.includes('monthly')) return 31*24*3600*1000*1.5;\n  return null;\n}\nconst overdue = [];\nfor (const it of items) {\n  const name = it.json.property_name || it.json.name || 'Unknown';\n  const cadence = it.json.property_expected_cadence;\n  const lu = it.json.property_last_updated && it.json.property_last_updated.start;\n  const ems = expMs(cadence);\n  if (!ems) continue;\n  if (!lu) { overdue.push(`${name} (never run)`); continue; }\n  const elapsed = now - new Date(lu).getTime();\n  if (elapsed > ems) overdue.push(`${name} (${Math.floor(elapsed/3600000)}h ago, expected: ${cadence})`);\n}\nconst active = overdue.length > 0;\nconst details = active ? `Overdue: ${overdue.join('. ')}` : 'All jobs healthy.';\nreturn [{ json: { active, details } }];"
+        }
+      },
+      {
+        "id": "5bedc5dd-15e9-406f-b807-5fcdd11608ea",
+        "name": "Update Job Health Card",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "method": "PATCH",
+          "url": "https://api.notion.com/v1/pages/3801a0ad-6469-805e-842d-c5d20e37a22f",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"properties\": {\n    \"Active\": { \"checkbox\": {{ $('Find Overdue Jobs').item.json.active }} },\n    \"Details\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $('Find Overdue Jobs').item.json.details }}\" } } ] },\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "id": "4ac8a2f1-fc0a-4ce3-b2b9-a70a1d35aced",
+        "name": "Update W-HEARTBEAT Heartbeat",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          896,
+          0
+        ],
+        "parameters": {
+          "method": "PATCH",
+          "url": "https://api.notion.com/v1/pages/3801a0ad-6469-80d3-a16c-ee3641afc1d2",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"properties\": {\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Read All Heartbeat Rows",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read All Heartbeat Rows": {
+        "main": [
+          [
+            {
+              "node": "Find Overdue Jobs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Find Overdue Jobs": {
+        "main": [
+          [
+            {
+              "node": "Update Job Health Card",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Job Health Card": {
+        "main": [
+          [
+            {
+              "node": "Update W-HEARTBEAT Heartbeat",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Jeff Balenton",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
   "tags": []
 }
