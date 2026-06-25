@@ -1,0 +1,367 @@
+{
+  "updatedAt": "2026-06-24T20:11:23.863Z",
+  "createdAt": "2026-06-22T15:29:18.041Z",
+  "id": "PKjoPQEsszf4FGDE",
+  "name": "OrderGuard - Intake Backbone",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "OrderGuard = Workflow (predefined paths) + gated agent moments later. Deterministic skeleton first. Nothing sends\n",
+        "height": 192,
+        "width": 592
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -4928,
+        -2272
+      ],
+      "id": "e778bef6-89e2-4ca7-9e98-f2613c9959b2",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -4640,
+        -2000
+      ],
+      "id": "efefe729-5eb7-4a86-ab79-6ab49ce6b37f",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Al2ZTQKu9GkU1Ttv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.subject }}",
+                    "rightValue": "where is",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "eab8fe41-b2de-464d-bd8a-7db91634e773"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "order-status"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a9cdc629-4912-467a-a825-a53c2d87acc6",
+                    "leftValue": "={{ $json.subject }}",
+                    "rightValue": "quote",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "quote-request"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "951ff86a-e4b6-417f-9200-9814fcee8ef1",
+                    "leftValue": "={{ $json.subject }}",
+                    "rightValue": "refund",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "complaint"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -4384,
+        -1824
+      ],
+      "id": "ab62c7cb-01ed-4632-a1cd-b55dc291e549",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22df1ffb-df53-42a6-95b8-897ab3c73c62",
+              "name": "intent",
+              "value": "order-status",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4032,
+        -2080
+      ],
+      "id": "8f0b0b1a-b14e-4011-8fb8-aee6b338a116",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "084f4d03-a87d-44a0-9429-2278e5f48962",
+              "name": "intent",
+              "value": "quote-request",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3840,
+        -1872
+      ],
+      "id": "1e2278c9-3c22-4b15-93b6-389113fb430f",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8efa8bdc-4cad-4ecf-9d4b-43514a3e62f2",
+              "name": "intent",
+              "value": "complaint",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3744,
+        -1680
+      ],
+      "id": "56e4f909-f90f-4274-8778-6a78a35172e1",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6653092a-d8ad-4149-9520-b407c6a4ea8b",
+              "name": "intent",
+              "value": "other",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4144,
+        -1504
+      ],
+      "id": "d46de8f6-ebfa-4232-9614-9e6344a9f64f",
+      "name": "Edit Fields3"
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Gmail Trigger": {
+      "Gmail Trigger": {
+        "lastTimeChecked": 1782327987,
+        "possibleDuplicates": [
+          "19efb07036707e2a",
+          "19efb0692dc70957"
+        ]
+      }
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "3657afc2-d305-4b64-ad3a-344cc7575923",
+  "activeVersionId": "d6eeb510-707e-4f59-a43a-60e6ccf839fe",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-06-22T15:29:18.044Z",
+      "createdAt": "2026-06-22T15:29:18.044Z",
+      "role": "workflow:owner",
+      "workflowId": "PKjoPQEsszf4FGDE",
+      "projectId": "rHH3woewt9mPybP5"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-06-23T19:30:44.000Z",
+    "createdAt": "2026-06-23T19:30:39.579Z",
+    "versionId": "d6eeb510-707e-4f59-a43a-60e6ccf839fe",
+    "workflowId": "PKjoPQEsszf4FGDE",
+    "nodes": [
+      {
+        "parameters": {
+          "content": "OrderGuard = Workflow (predefined paths) + gated agent moments later. Deterministic skeleton first. Nothing sends\n",
+          "height": 192,
+          "width": 592
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -3424,
+          -1792
+        ],
+        "id": "e778bef6-89e2-4ca7-9e98-f2613c9959b2",
+        "name": "Sticky Note"
+      },
+      {
+        "parameters": {
+          "pollTimes": {
+            "item": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          },
+          "filters": {
+            "readStatus": "unread"
+          }
+        },
+        "type": "n8n-nodes-base.gmailTrigger",
+        "typeVersion": 1.4,
+        "position": [
+          -2880,
+          -1344
+        ],
+        "id": "efefe729-5eb7-4a86-ab79-6ab49ce6b37f",
+        "name": "Gmail Trigger",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "GpYRyXk6ql5ePHw4",
+            "name": "balenton speaks  acct"
+          }
+        }
+      }
+    ],
+    "connections": {},
+    "authors": "Jeff Balenton",
+    "name": "Version d6eeb510",
+    "description": "",
+    "autosaved": true
+  },
+  "tags": []
+}
