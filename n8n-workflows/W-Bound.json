@@ -1,188 +1,119 @@
 {
+  "updatedAt": "2026-06-18T01:22:01.631Z",
+  "createdAt": "2026-06-17T00:26:18.825Z",
+  "id": "aIOX0fPpVRmm4Tme",
   "name": "W-Bound",
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
+      "id": "b9f9bd0a-6cec-4f48-9a45-724ff6592141",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
       "parameters": {
         "rule": {
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 6 * * *"
+              "expression": "0 0 6 * * *"
             }
           ]
         }
-      },
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.3,
-      "position": [
-        -1120,
-        -592
-      ],
-      "id": "c29c40ce-0ef4-4d10-be06-51cad49c1f08",
-      "name": "Schedule Trigger"
+      }
     },
     {
+      "id": "0aaf237a-b789-477f-be90-244629f2cb0c",
+      "name": "Read System Status",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
       "parameters": {
-        "jsCode": "const rows = $input.all();\n\nconst cycleEndRow = rows.find(r => r.json.name === 'Current Cycle End Date');\nconst freezeRow = rows.find(r => r.json.name === 'Sprint Freeze Status');\n\nconst freezeStatus = freezeRow?.json?.property_details || '';\nconst cycleEndDetails = cycleEndRow?.json?.property_details || '';\n\n// Rule 1: frozen or sabbatical → skip\nif (freezeStatus.trim() === 'Frozen' || freezeStatus.trim() === 'Sabbatical') {\n  return [{ json: { flag: false, details: '' } }];\n}\n\n// Rule 2: no date set yet → skip\nif (!cycleEndDetails.trim()) {\n  return [{ json: { flag: false, details: '' } }];\n}\n\n// Rule 3: today >= cycle end date?\nconst today = new Date();\ntoday.setHours(0, 0, 0, 0);\nconst cycleEnd = new Date(cycleEndDetails.trim());\ncycleEnd.setHours(0, 0, 0, 0);\n\nconst flag = today >= cycleEnd;\nconst details = flag ? `Cycle ended ${cycleEndDetails.trim()}` : '';\n\nreturn [{ json: { flag, details } }];"
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "3801a0ad-6469-8057-8548-f73c84267fdd",
+          "mode": "id",
+          "cachedResultName": "System Status"
+        },
+        "returnAll": true,
+        "simple": true,
+        "options": {}
       },
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "id": "23cdb54c-5c9c-405e-bd0a-dd90665a1097",
+      "name": "Evaluate Cycle Boundary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -928,
-        -480
+        448,
+        0
       ],
-      "id": "d2c7db41-745f-47ac-9a3e-71e966b3f921",
-      "name": "StatusRows"
-    },
-    {
       "parameters": {
-        "resource": "databasePage",
-        "operation": "getAll",
-        "databaseId": {
-          "__rl": true,
-          "value": "3801a0ad-6469-8057-8548-f73c84267fdd",
-          "mode": "list",
-          "cachedResultName": "System Status",
-          "cachedResultUrl": "https://app.notion.com/p/3801a0ad646980578548f73c84267fdd"
-        },
-        "limit": 1,
-        "filterType": "manual",
-        "filters": {
-          "conditions": [
-            {
-              "key": "Name|title",
-              "condition": "equals",
-              "titleValue": "Cycle Close Due"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [
-        -752,
-        -368
-      ],
-      "id": "9b5fcb0b-a644-475b-b37c-d2836c46ad7d",
-      "name": "CycleCloseDueRow",
-      "credentials": {
-        "notionApi": {
-          "id": "AvmXQWvJBf0m2k5W",
-          "name": "Notion account"
-        }
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $('Read System Status').all();\nconst nm = (r) => r.json.property_name || r.json.name || '';\nconst det = (r) => (r && r.json.property_details) || '';\nconst freezeRows = rows.filter(r => nm(r) === 'Sprint Freeze Status');\nconst freezeRow = freezeRows.find(r => det(r).trim()) || freezeRows[0];\nconst endRow = rows.find(r => nm(r) === 'Current Cycle End Date');\nconst freeze = (freezeRow ? det(freezeRow) : '').trim();\nconst endStr = (endRow ? det(endRow) : '').trim();\nlet active = false, details = '';\nif (freeze === 'Frozen' || freeze === 'Sabbatical') { active = false; }\nelse if (!endStr) { active = false; }\nelse {\n  const today = new Date(); today.setHours(0,0,0,0);\n  const end = new Date(endStr); end.setHours(0,0,0,0);\n  active = today >= end;\n  details = active ? `Cycle ended ${endStr} \\u2014 time to close the cycle.` : '';\n}\nreturn [{ json: { active, details } }];"
       }
     },
     {
-      "parameters": {
-        "method": "PATCH",
-        "url": "=https://api.notion.com/v1/pages/{{$('CycleCloseDueRow').item.json.id}}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "notionApi",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Notion-Version",
-              "value": "2022-06-28"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"properties\": {\n    \"Active\": {\n      \"checkbox\": false\n    },\n    \"Details\": {\n      \"rich_text\": [{ \"text\": { \"content\": \"\" } }]\n    },\n    \"Last Updated\": {\n      \"date\": { \"start\": \"{{$now.toISO()}}\" }\n    }\n  }\n}",
-        "options": {}
-      },
+      "id": "520c6092-ba04-42c6-834c-2ff4ba4471f7",
+      "name": "Update Cycle Close Due",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -576,
-        -272
+        672,
+        0
       ],
-      "id": "798418f5-4477-49c4-8884-1f40698d710d",
-      "name": "HTTP Request",
-      "credentials": {
-        "notionApi": {
-          "id": "AvmXQWvJBf0m2k5W",
-          "name": "Notion account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "resource": "databasePage",
-        "operation": "getAll",
-        "databaseId": {
-          "__rl": true,
-          "value": "3801a0ad-6469-8057-8548-f73c84267fdd",
-          "mode": "list",
-          "cachedResultName": "System Status",
-          "cachedResultUrl": "https://app.notion.com/p/3801a0ad646980578548f73c84267fdd"
-        },
-        "limit": 1,
-        "filterType": "manual",
-        "filters": {
-          "conditions": [
-            {
-              "key": "Name|title",
-              "condition": "equals",
-              "titleValue": "W-BOUND"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [
-        -368,
-        -272
-      ],
-      "id": "6ff3cccb-9a52-4996-9816-8a786e8c3f3d",
-      "name": "BoundHeartbeatRow",
-      "credentials": {
-        "notionApi": {
-          "id": "AvmXQWvJBf0m2k5W",
-          "name": "Notion account"
-        }
-      }
-    },
-    {
       "parameters": {
         "method": "PATCH",
-        "url": "=https://api.notion.com/v1/pages/{{$('BoundHeartbeatRow').item.json.id}}",
+        "url": "https://api.notion.com/v1/pages/3801a0ad-6469-809d-b7e9-d3af755060b1",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "notionApi",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Notion-Version",
-              "value": "2022-06-28"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"properties\": {\n    \"Last Updated\": {\n      \"date\": { \"start\": \"{{$now.toISO()}}\" }\n    }\n  }\n}",
+        "jsonBody": "={\n  \"properties\": {\n    \"Active\": { \"checkbox\": {{ $('Evaluate Cycle Boundary').item.json.active }} },\n    \"Details\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $('Evaluate Cycle Boundary').item.json.details }}\" } } ] },\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
         "options": {}
       },
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "id": "cee7d3ae-1513-4ec7-9983-270b9cfda768",
+      "name": "Update W-BOUND Heartbeat",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -160,
-        -272
+        896,
+        0
       ],
-      "id": "29356792-b207-4edd-952f-964cdfc23b59",
-      "name": "HTTP Request1",
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.notion.com/v1/pages/3801a0ad-6469-8011-a775-e036ffc0e586",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+        "options": {}
+      },
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -191,57 +122,45 @@
       }
     }
   ],
-  "pinData": {},
   "connections": {
     "Schedule Trigger": {
       "main": [
         [
           {
-            "node": "StatusRows",
+            "node": "Read System Status",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "StatusRows": {
+    "Read System Status": {
       "main": [
         [
           {
-            "node": "CycleCloseDueRow",
+            "node": "Evaluate Cycle Boundary",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "CycleCloseDueRow": {
+    "Evaluate Cycle Boundary": {
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "Update Cycle Close Due",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "HTTP Request": {
+    "Update Cycle Close Due": {
       "main": [
         [
           {
-            "node": "BoundHeartbeatRow",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "BoundHeartbeatRow": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request1",
+            "node": "Update W-BOUND Heartbeat",
             "type": "main",
             "index": 0
           }
@@ -249,16 +168,207 @@
       ]
     }
   },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
   },
-  "versionId": "a7afaec1-10a1-4a0f-954d-95f93c92eb41",
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
   },
-  "id": "aIOX0fPpVRmm4Tme",
+  "pinData": {},
+  "versionId": "e9c39ab9-782a-4f82-9f37-dbfb4cea038e",
+  "activeVersionId": "e9c39ab9-782a-4f82-9f37-dbfb4cea038e",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-06-17T00:26:18.829Z",
+      "createdAt": "2026-06-17T00:26:18.829Z",
+      "role": "workflow:owner",
+      "workflowId": "aIOX0fPpVRmm4Tme",
+      "projectId": "rHH3woewt9mPybP5"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-06-18T01:22:01.639Z",
+    "createdAt": "2026-06-18T01:22:01.639Z",
+    "versionId": "e9c39ab9-782a-4f82-9f37-dbfb4cea038e",
+    "workflowId": "aIOX0fPpVRmm4Tme",
+    "nodes": [
+      {
+        "id": "b9f9bd0a-6cec-4f48-9a45-724ff6592141",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 0 6 * * *"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "0aaf237a-b789-477f-be90-244629f2cb0c",
+        "name": "Read System Status",
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "resource": "databasePage",
+          "operation": "getAll",
+          "databaseId": {
+            "__rl": true,
+            "value": "3801a0ad-6469-8057-8548-f73c84267fdd",
+            "mode": "id",
+            "cachedResultName": "System Status"
+          },
+          "returnAll": true,
+          "simple": true,
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "id": "23cdb54c-5c9c-405e-bd0a-dd90665a1097",
+        "name": "Evaluate Cycle Boundary",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const rows = $('Read System Status').all();\nconst nm = (r) => r.json.property_name || r.json.name || '';\nconst det = (r) => (r && r.json.property_details) || '';\nconst freezeRows = rows.filter(r => nm(r) === 'Sprint Freeze Status');\nconst freezeRow = freezeRows.find(r => det(r).trim()) || freezeRows[0];\nconst endRow = rows.find(r => nm(r) === 'Current Cycle End Date');\nconst freeze = (freezeRow ? det(freezeRow) : '').trim();\nconst endStr = (endRow ? det(endRow) : '').trim();\nlet active = false, details = '';\nif (freeze === 'Frozen' || freeze === 'Sabbatical') { active = false; }\nelse if (!endStr) { active = false; }\nelse {\n  const today = new Date(); today.setHours(0,0,0,0);\n  const end = new Date(endStr); end.setHours(0,0,0,0);\n  active = today >= end;\n  details = active ? `Cycle ended ${endStr} \\u2014 time to close the cycle.` : '';\n}\nreturn [{ json: { active, details } }];"
+        }
+      },
+      {
+        "id": "520c6092-ba04-42c6-834c-2ff4ba4471f7",
+        "name": "Update Cycle Close Due",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "method": "PATCH",
+          "url": "https://api.notion.com/v1/pages/3801a0ad-6469-809d-b7e9-d3af755060b1",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"properties\": {\n    \"Active\": { \"checkbox\": {{ $('Evaluate Cycle Boundary').item.json.active }} },\n    \"Details\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $('Evaluate Cycle Boundary').item.json.details }}\" } } ] },\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "id": "cee7d3ae-1513-4ec7-9983-270b9cfda768",
+        "name": "Update W-BOUND Heartbeat",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          896,
+          0
+        ],
+        "parameters": {
+          "method": "PATCH",
+          "url": "https://api.notion.com/v1/pages/3801a0ad-6469-8011-a775-e036ffc0e586",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"properties\": {\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Read System Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read System Status": {
+        "main": [
+          [
+            {
+              "node": "Evaluate Cycle Boundary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Evaluate Cycle Boundary": {
+        "main": [
+          [
+            {
+              "node": "Update Cycle Close Due",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Cycle Close Due": {
+        "main": [
+          [
+            {
+              "node": "Update W-BOUND Heartbeat",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Jeff Balenton",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
   "tags": []
 }
