@@ -1,5 +1,10 @@
 {
+  "updatedAt": "2026-06-17T22:45:30.811Z",
+  "createdAt": "2026-06-16T12:37:45.127Z",
+  "id": "u9xHNWSyG8hBpReq",
   "name": "W-TICKLE",
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -252,7 +257,6 @@
       }
     }
   ],
-  "pinData": {},
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -328,7 +332,6 @@
       ]
     }
   },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
@@ -336,11 +339,363 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": true
   },
-  "versionId": "2df2c607-8d16-4829-8e47-585edc8ad53c",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
   },
-  "id": "u9xHNWSyG8hBpReq",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "2df2c607-8d16-4829-8e47-585edc8ad53c",
+  "activeVersionId": "2df2c607-8d16-4829-8e47-585edc8ad53c",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-06-16T12:37:45.130Z",
+      "createdAt": "2026-06-16T12:37:45.130Z",
+      "role": "workflow:owner",
+      "workflowId": "u9xHNWSyG8hBpReq",
+      "projectId": "rHH3woewt9mPybP5"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-06-17T02:12:00.000Z",
+    "createdAt": "2026-06-16T14:25:08.498Z",
+    "versionId": "2df2c607-8d16-4829-8e47-585edc8ad53c",
+    "workflowId": "u9xHNWSyG8hBpReq",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 0 6 * * *"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          -1040,
+          -512
+        ],
+        "id": "81174482-4bea-4b93-8c23-e6d9b183da43",
+        "name": "Schedule Trigger"
+      },
+      {
+        "parameters": {
+          "resource": "databasePage",
+          "operation": "getAll",
+          "databaseId": {
+            "__rl": true,
+            "value": "3801a0ad-6469-803f-b532-ec4478cce7ba",
+            "mode": "list",
+            "cachedResultName": "Tickler",
+            "cachedResultUrl": "https://app.notion.com/p/3801a0ad6469803fb532ec4478cce7ba"
+          },
+          "returnAll": true,
+          "filterType": "manual",
+          "filters": {
+            "conditions": [
+              {
+                "key": "Status|select",
+                "condition": "equals",
+                "selectValue": "Pending"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          -768,
+          -320
+        ],
+        "id": "ff8d8158-42bf-4352-9f1d-d1d064a5144d",
+        "name": "Tickler",
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "resource": "databasePage",
+          "operation": "getAll",
+          "databaseId": {
+            "__rl": true,
+            "value": "3801a0ad-6469-8057-8548-f73c84267fdd",
+            "mode": "list",
+            "cachedResultName": "System Status",
+            "cachedResultUrl": "https://app.notion.com/p/3801a0ad646980578548f73c84267fdd"
+          },
+          "limit": 1,
+          "filterType": "manual",
+          "filters": {
+            "conditions": [
+              {
+                "key": "Name|title",
+                "condition": "equals",
+                "titleValue": "Tickler Resurface"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          -576,
+          -176
+        ],
+        "id": "57cd00c5-72ba-4e89-a3c4-03d451f84b9a",
+        "name": "StatusRow",
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const items = $('Tickler').all();\nconst statusRow = $('StatusRow').first().json;\n\nconst today = new Date();\ntoday.setHours(0, 0, 0, 0);\n\nconst toResurface = [];\nconst conditionItems = [];\nconst outputItems = [];\n\nfor (const item of items) {\n  const resurfaceType = item.json.property_resurface_type;\n  const resurfaceDateRaw = item.json.property_resurface_date;\nconst itemText = item.json.property_item_text || item.json.id;\n  const pageId = item.json.id;\n\n  if (resurfaceType === 'Date') {\n    const resurfaceDate = resurfaceDateRaw?.start\n      ? new Date(resurfaceDateRaw.start)\n      : null;\n    if (resurfaceDate && resurfaceDate <= today) {\n      toResurface.push({ pageId, itemText });\n      outputItems.push({ json: { _target: 'tickler', pageId, itemText } });\n    }\n  } else if (resurfaceType === 'Condition') {\n    conditionItems.push(itemText);\n  }\n}\n\nconst anyDue = toResurface.length > 0 || conditionItems.length > 0;\nlet details = '';\nif (toResurface.length > 0) {\n  details += 'Resurfaced: ' + toResurface.map(i => i.itemText).join(', ');\n}\nif (conditionItems.length > 0) {\n  if (details) details += ' | ';\n  details += 'Condition review: ' + conditionItems.join(', ');\n}\nif (!anyDue) details = 'No items due today.';\n\nconst body = JSON.stringify({\n  properties: {\n    Active: { checkbox: anyDue },\n    Details: { rich_text: [{ text: { content: details } }] },\n    \"Last Updated\": { date: { start: new Date().toISOString() } }\n  }\n});\n\noutputItems.push({\n  json: {\n    _target: 'status',\n    pageId: statusRow.id,\n    body\n  }\n});\n\nreturn outputItems;"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -384,
+          -80
+        ],
+        "id": "6549b085-8225-48cc-8922-b8db5a7badb1",
+        "name": "Code in JavaScript"
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "=https://api.notion.com/v1/pages/{{$json.pageId}}",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Notion-Version",
+                "value": "2022-06-28"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": " {\n       \"properties\": {\n         \"Status\": {\n           \"select\": {\n             \"name\": \"Resurfaced\"\n           }\n         }\n       }\n     }",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          64,
+          -176
+        ],
+        "id": "ebc39a0a-f6b9-4178-890e-4f7666ce0f88",
+        "name": "Write A",
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "=https://api.notion.com/v1/pages/3801a0ad-6469-8027-b639-f724757c8f85",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Notion-Version",
+                "value": "2022-06-28"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{$json.body}}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          48,
+          64
+        ],
+        "id": "c89005cc-f081-4034-8311-8e73b808dcd1",
+        "name": "Write B",
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "850c1234-3cdf-4c46-b3ce-5e908fb3df9a",
+                "leftValue": "={{ $json._target }}",
+                "rightValue": "tickler",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals",
+                  "name": "filter.operator.equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.3,
+        "position": [
+          -160,
+          -48
+        ],
+        "id": "67c37af9-8483-44db-aa71-7f79bce6a686",
+        "name": "FLT"
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "https://api.notion.com/v1/pages/3801a0ad-6469-8099-a7fe-fb82862b8889",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Notion-Version",
+                "value": "2022-06-28"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"properties\": {\n    \"Last Updated\": {\n      \"date\": {\"start\": \"{{$now.toISO()}}\"}\n    }\n  }\n}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          192,
+          192
+        ],
+        "id": "1193e9a4-d1b7-4432-9cbe-02e71f99572f",
+        "name": "Heartbeat",
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Tickler",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tickler": {
+        "main": [
+          [
+            {
+              "node": "StatusRow",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "StatusRow": {
+        "main": [
+          [
+            {
+              "node": "Code in JavaScript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code in JavaScript": {
+        "main": [
+          [
+            {
+              "node": "FLT",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "FLT": {
+        "main": [
+          [
+            {
+              "node": "Write A",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Write B",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Write B": {
+        "main": [
+          [
+            {
+              "node": "Heartbeat",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Jeff Balenton",
+    "name": "Version 2df2c607",
+    "description": "",
+    "autosaved": true
+  },
   "tags": []
 }
