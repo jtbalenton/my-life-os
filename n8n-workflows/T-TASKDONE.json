@@ -1,7 +1,20 @@
 {
+  "updatedAt": "2026-06-17T23:03:13.317Z",
+  "createdAt": "2026-06-17T23:03:13.317Z",
+  "id": "j4hZT6BSaT66A5DA",
   "name": "T-TASKDONE",
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
+      "id": "32efa6a7-f4a4-4d04-83db-31b7e42f02f9",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        96
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -11,17 +24,17 @@
             }
           ]
         }
-      },
-      "id": "32efa6a7-f4a4-4d04-83db-31b7e42f02f9",
-      "name": "Schedule Trigger",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.3,
-      "position": [
-        0,
-        96
-      ]
+      }
     },
     {
+      "id": "4f3c9898-bbfa-4d0d-80c8-2cb74fce938a",
+      "name": "Read Tasks",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        96
+      ],
       "parameters": {
         "resource": "databasePage",
         "operation": "getAll",
@@ -32,16 +45,9 @@
           "cachedResultName": "Tasks"
         },
         "returnAll": true,
+        "simple": true,
         "options": {}
       },
-      "id": "4f3c9898-bbfa-4d0d-80c8-2cb74fce938a",
-      "name": "Read Tasks",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [
-        224,
-        96
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -50,6 +56,14 @@
       }
     },
     {
+      "id": "5d059079-f50f-4fb3-abed-720e0ec3920a",
+      "name": "Read Projects",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        96
+      ],
       "parameters": {
         "resource": "databasePage",
         "operation": "getAll",
@@ -60,16 +74,9 @@
           "cachedResultName": "Projects"
         },
         "returnAll": true,
+        "simple": true,
         "options": {}
       },
-      "id": "5d059079-f50f-4fb3-abed-720e0ec3920a",
-      "name": "Read Projects",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [
-        448,
-        96
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -78,9 +85,6 @@
       }
     },
     {
-      "parameters": {
-        "jsCode": "const norm = (s) => String(s||'').replace(/-/g,'');\nconst within = (d) => d && (Date.now() - new Date(d).getTime()) <= 6*60000;\nconst lt = (r) => r.json.property_last_touched && r.json.property_last_touched.start;\nconst tStatus = (t) => t.json.property_status ?? t.json['property_status '] ?? t.json.property_status_;\nconst tProj = (t) => { const v = t.json.property_serves_project; if (!v) return []; const a = Array.isArray(v) ? v : [v]; return a.map(x => norm(x && x.id ? x.id : x)); };\nconst tasks = $('Read Tasks').all();\nconst projects = $('Read Projects').all();\nconst doneRecent = tasks.filter(t => tStatus(t) === 'Done' && within(lt(t)));\nconst out = []; const handled = new Set(); const names = [];\nfor (const dt of doneRecent) {\n  for (const pid of tProj(dt)) {\n    if (handled.has(pid)) continue; handled.add(pid);\n    const proj = projects.find(p => norm(p.json.id) === pid);\n    if (!proj) continue;\n    if ((proj.json.property_state || '') === 'Done') continue;\n    const ptasks = tasks.filter(t => tProj(t).includes(pid));\n    if (ptasks.length > 0 && ptasks.every(t => tStatus(t) === 'Done')) {\n      out.push({ json: { _target: 'project', pageId: pid, state: 'Done', closureReason: 'All linked tasks completed (auto-detected \\u2014 review at next session)' } });\n      names.push(proj.json.property_name || proj.json.name || 'Project');\n    }\n  }\n}\nif (names.length) {\n  out.push({ json: { _target: 'status', pageId: '3821a0ad6469815bb90dd01e534ab12e', active: true, details: `${names.join(', ')} (${new Date().toISOString().slice(0,10)})` } });\n}\nreturn out;"
-      },
       "id": "0c2b0cd0-2457-46bf-b491-e63bd939fcee",
       "name": "Find Completed Projects",
       "type": "n8n-nodes-base.code",
@@ -88,16 +92,27 @@
       "position": [
         672,
         96
-      ]
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const norm = (s) => String(s||'').replace(/-/g,'');\nconst within = (d) => d && (Date.now() - new Date(d).getTime()) <= 6*60000;\nconst lt = (r) => r.json.property_last_touched && r.json.property_last_touched.start;\nconst tStatus = (t) => t.json.property_status ?? t.json['property_status '] ?? t.json.property_status_;\nconst tProj = (t) => { const v = t.json.property_serves_project; if (!v) return []; const a = Array.isArray(v) ? v : [v]; return a.map(x => norm(x && x.id ? x.id : x)); };\nconst tasks = $('Read Tasks').all();\nconst projects = $('Read Projects').all();\nconst doneRecent = tasks.filter(t => tStatus(t) === 'Done' && within(lt(t)));\nconst out = []; const handled = new Set(); const names = [];\nfor (const dt of doneRecent) {\n  for (const pid of tProj(dt)) {\n    if (handled.has(pid)) continue; handled.add(pid);\n    const proj = projects.find(p => norm(p.json.id) === pid);\n    if (!proj) continue;\n    if ((proj.json.property_state || '') === 'Done') continue;\n    const ptasks = tasks.filter(t => tProj(t).includes(pid));\n    if (ptasks.length > 0 && ptasks.every(t => tStatus(t) === 'Done')) {\n      out.push({ json: { _target: 'project', pageId: pid, state: 'Done', closureReason: 'All linked tasks completed (auto-detected \\u2014 review at next session)' } });\n      names.push(proj.json.property_name || proj.json.name || 'Project');\n    }\n  }\n}\nif (names.length) {\n  out.push({ json: { _target: 'status', pageId: '3821a0ad6469815bb90dd01e534ab12e', active: true, details: `${names.join(', ')} (${new Date().toISOString().slice(0,10)})` } });\n}\nreturn out;"
+      }
     },
     {
+      "id": "80fffbc5-6622-4229-b222-85b1dd31273b",
+      "name": "Project or Status?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        96
+      ],
       "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict",
-            "version": 1
+            "typeValidation": "strict"
           },
           "conditions": [
             {
@@ -110,19 +125,18 @@
             }
           ],
           "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "80fffbc5-6622-4229-b222-85b1dd31273b",
-      "name": "Project or Status?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        896,
-        96
-      ]
+        }
+      }
     },
     {
+      "id": "f3f2dc99-4101-456c-8e34-c3547806d40b",
+      "name": "Mark Project Done",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        0
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "=https://api.notion.com/v1/pages/{{ $json.pageId }}",
@@ -133,14 +147,6 @@
         "jsonBody": "={\n  \"properties\": {\n    \"State\": { \"select\": { \"name\": \"{{ $json.state }}\" } },\n    \"Closure Reason\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $json.closureReason }}\" } } ] },\n    \"Last Touched\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
         "options": {}
       },
-      "id": "f3f2dc99-4101-456c-8e34-c3547806d40b",
-      "name": "Mark Project Done",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.3,
-      "position": [
-        1120,
-        0
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -149,6 +155,14 @@
       }
     },
     {
+      "id": "3d078a3b-9d89-4ee3-8bb4-52f7777f0ab1",
+      "name": "Log Project Completions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        192
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "=https://api.notion.com/v1/pages/{{ $json.pageId }}",
@@ -159,14 +173,6 @@
         "jsonBody": "={\n  \"properties\": {\n    \"Active\": { \"checkbox\": {{ $json.active }} },\n    \"Details\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $json.details }}\" } } ] },\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
         "options": {}
       },
-      "id": "3d078a3b-9d89-4ee3-8bb4-52f7777f0ab1",
-      "name": "Log Project Completions",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.3,
-      "position": [
-        1120,
-        192
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -175,7 +181,6 @@
       }
     }
   ],
-  "pinData": {},
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -240,18 +245,281 @@
       ]
     }
   },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate",
     "availableInMCP": true
   },
-  "versionId": "187de5c3-43b7-4169-85c6-bfbfe40e8b5a",
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
   "meta": {
     "aiBuilderAssisted": true,
-    "builderVariant": "mcp",
-    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+    "builderVariant": "mcp"
   },
-  "id": "j4hZT6BSaT66A5DA",
+  "pinData": null,
+  "versionId": "187de5c3-43b7-4169-85c6-bfbfe40e8b5a",
+  "activeVersionId": "187de5c3-43b7-4169-85c6-bfbfe40e8b5a",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-06-17T23:03:13.319Z",
+      "createdAt": "2026-06-17T23:03:13.319Z",
+      "role": "workflow:owner",
+      "workflowId": "j4hZT6BSaT66A5DA",
+      "projectId": "rHH3woewt9mPybP5"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-06-17T23:03:13.320Z",
+    "createdAt": "2026-06-17T23:03:13.320Z",
+    "versionId": "187de5c3-43b7-4169-85c6-bfbfe40e8b5a",
+    "workflowId": "j4hZT6BSaT66A5DA",
+    "nodes": [
+      {
+        "id": "32efa6a7-f4a4-4d04-83db-31b7e42f02f9",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          96
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 */5 * * * *"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "4f3c9898-bbfa-4d0d-80c8-2cb74fce938a",
+        "name": "Read Tasks",
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          224,
+          96
+        ],
+        "parameters": {
+          "resource": "databasePage",
+          "operation": "getAll",
+          "databaseId": {
+            "__rl": true,
+            "value": "37b1a0ad-6469-8014-b20c-d28f076f7528",
+            "mode": "id",
+            "cachedResultName": "Tasks"
+          },
+          "returnAll": true,
+          "simple": true,
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "id": "5d059079-f50f-4fb3-abed-720e0ec3920a",
+        "name": "Read Projects",
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          448,
+          96
+        ],
+        "parameters": {
+          "resource": "databasePage",
+          "operation": "getAll",
+          "databaseId": {
+            "__rl": true,
+            "value": "37f1a0ad-6469-8063-b0ff-ff52690140ba",
+            "mode": "id",
+            "cachedResultName": "Projects"
+          },
+          "returnAll": true,
+          "simple": true,
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "id": "0c2b0cd0-2457-46bf-b491-e63bd939fcee",
+        "name": "Find Completed Projects",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          672,
+          96
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const norm = (s) => String(s||'').replace(/-/g,'');\nconst within = (d) => d && (Date.now() - new Date(d).getTime()) <= 6*60000;\nconst lt = (r) => r.json.property_last_touched && r.json.property_last_touched.start;\nconst tStatus = (t) => t.json.property_status ?? t.json['property_status '] ?? t.json.property_status_;\nconst tProj = (t) => { const v = t.json.property_serves_project; if (!v) return []; const a = Array.isArray(v) ? v : [v]; return a.map(x => norm(x && x.id ? x.id : x)); };\nconst tasks = $('Read Tasks').all();\nconst projects = $('Read Projects').all();\nconst doneRecent = tasks.filter(t => tStatus(t) === 'Done' && within(lt(t)));\nconst out = []; const handled = new Set(); const names = [];\nfor (const dt of doneRecent) {\n  for (const pid of tProj(dt)) {\n    if (handled.has(pid)) continue; handled.add(pid);\n    const proj = projects.find(p => norm(p.json.id) === pid);\n    if (!proj) continue;\n    if ((proj.json.property_state || '') === 'Done') continue;\n    const ptasks = tasks.filter(t => tProj(t).includes(pid));\n    if (ptasks.length > 0 && ptasks.every(t => tStatus(t) === 'Done')) {\n      out.push({ json: { _target: 'project', pageId: pid, state: 'Done', closureReason: 'All linked tasks completed (auto-detected \\u2014 review at next session)' } });\n      names.push(proj.json.property_name || proj.json.name || 'Project');\n    }\n  }\n}\nif (names.length) {\n  out.push({ json: { _target: 'status', pageId: '3821a0ad6469815bb90dd01e534ab12e', active: true, details: `${names.join(', ')} (${new Date().toISOString().slice(0,10)})` } });\n}\nreturn out;"
+        }
+      },
+      {
+        "id": "80fffbc5-6622-4229-b222-85b1dd31273b",
+        "name": "Project or Status?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          896,
+          96
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json._target }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "rightValue": "project"
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "f3f2dc99-4101-456c-8e34-c3547806d40b",
+        "name": "Mark Project Done",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          1120,
+          0
+        ],
+        "parameters": {
+          "method": "PATCH",
+          "url": "=https://api.notion.com/v1/pages/{{ $json.pageId }}",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"properties\": {\n    \"State\": { \"select\": { \"name\": \"{{ $json.state }}\" } },\n    \"Closure Reason\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $json.closureReason }}\" } } ] },\n    \"Last Touched\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "id": "3d078a3b-9d89-4ee3-8bb4-52f7777f0ab1",
+        "name": "Log Project Completions",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          1120,
+          192
+        ],
+        "parameters": {
+          "method": "PATCH",
+          "url": "=https://api.notion.com/v1/pages/{{ $json.pageId }}",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"properties\": {\n    \"Active\": { \"checkbox\": {{ $json.active }} },\n    \"Details\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $json.details }}\" } } ] },\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Read Tasks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Tasks": {
+        "main": [
+          [
+            {
+              "node": "Read Projects",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Projects": {
+        "main": [
+          [
+            {
+              "node": "Find Completed Projects",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Find Completed Projects": {
+        "main": [
+          [
+            {
+              "node": "Project or Status?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Project or Status?": {
+        "main": [
+          [
+            {
+              "node": "Mark Project Done",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log Project Completions",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Jeff Balenton",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
   "tags": []
 }
