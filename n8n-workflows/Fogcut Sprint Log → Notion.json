@@ -1,0 +1,182 @@
+{
+  "updatedAt": "2026-06-20T17:43:51.461Z",
+  "createdAt": "2026-06-20T17:41:37.012Z",
+  "id": "2worLWbmssxOHZTU",
+  "name": "Fogcut Sprint Log → Notion",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fogcut-sprint-log",
+        "options": {}
+      },
+      "id": "063ca777-74fb-4ef0-8c4c-35ae958a3cf2",
+      "name": "Sprint Log Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "f586755e-2710-49ac-a78f-5c380e6274de"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.secret }}",
+              "rightValue": "CHANGE_ME_fogcut_secret",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "27b3761b-b072-48a6-bae4-2a36fd3f8bf7"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e48e8f03-051e-4f3b-8843-6e9a4e37cdf9",
+      "name": "Check Secret",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "f45d37c5-7a49-4490-8dee-dc985802744a"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Entry|title",
+              "title": "={{ $('Sprint Log Webhook').item.json.body.entry }}"
+            },
+            {
+              "key": "Date|date",
+              "includeTime": false,
+              "date": "={{ $('Sprint Log Webhook').item.json.body.date }}"
+            },
+            {
+              "key": "Module|select",
+              "selectValue": "={{ $('Sprint Log Webhook').item.json.body.module }}"
+            },
+            {
+              "key": "Day/Milestone|rich_text",
+              "textContent": "={{ $('Sprint Log Webhook').item.json.body.day }}"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "={{ $('Sprint Log Webhook').item.json.body.status }}"
+            },
+            {
+              "key": "Deep-core min|number",
+              "numberValue": "={{ $('Sprint Log Webhook').item.json.body.deepcore }}"
+            },
+            {
+              "key": "Reinforcement min|number",
+              "numberValue": "={{ $('Sprint Log Webhook').item.json.body.reinforcement }}"
+            },
+            {
+              "key": "Quiz result|select",
+              "selectValue": "={{ $('Sprint Log Webhook').item.json.body.quiz }}"
+            },
+            {
+              "key": "Demo|select",
+              "selectValue": "={{ $('Sprint Log Webhook').item.json.body.demo }}"
+            },
+            {
+              "key": "Blockers|rich_text",
+              "textContent": "={{ $('Sprint Log Webhook').item.json.body.blockers }}"
+            },
+            {
+              "key": "Next action|rich_text",
+              "textContent": "={{ $('Sprint Log Webhook').item.json.body.next }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "841ee54e-dcd6-40be-b9de-34c99699165d",
+      "name": "Create Log Row",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Sprint Log Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Secret": {
+      "main": [
+        [
+          {
+            "node": "Create Log Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "pinData": {},
+  "versionId": "eb685cf4-19fa-446d-aa09-e2eea6c6030d",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-06-20T17:41:37.015Z",
+      "createdAt": "2026-06-20T17:41:37.015Z",
+      "role": "workflow:owner",
+      "workflowId": "2worLWbmssxOHZTU",
+      "projectId": "rHH3woewt9mPybP5"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
