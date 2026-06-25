@@ -1,7 +1,20 @@
 {
+  "updatedAt": "2026-06-17T23:02:10.060Z",
+  "createdAt": "2026-06-17T23:02:10.060Z",
+  "id": "U7ZiaZm8N3POzkHP",
   "name": "T-DASHSYNC",
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
+      "id": "c65b50a7-2e41-4bad-950d-c79759f90573",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -11,17 +24,17 @@
             }
           ]
         }
-      },
-      "id": "c65b50a7-2e41-4bad-950d-c79759f90573",
-      "name": "Schedule Trigger",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.3,
-      "position": [
-        0,
-        0
-      ]
+      }
     },
     {
+      "id": "3eedcf46-8896-4206-bd89-cc992031e333",
+      "name": "Read Projects",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
       "parameters": {
         "resource": "databasePage",
         "operation": "getAll",
@@ -32,16 +45,9 @@
           "cachedResultName": "Projects"
         },
         "returnAll": true,
+        "simple": true,
         "options": {}
       },
-      "id": "3eedcf46-8896-4206-bd89-cc992031e333",
-      "name": "Read Projects",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [
-        224,
-        0
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -50,6 +56,14 @@
       }
     },
     {
+      "id": "b9ccf1f5-40d1-453b-aa6c-daf5e414ac1b",
+      "name": "Read Sprint Goals",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        0
+      ],
       "parameters": {
         "resource": "databasePage",
         "operation": "getAll",
@@ -60,16 +74,9 @@
           "cachedResultName": "Sprint Goals"
         },
         "returnAll": true,
+        "simple": true,
         "options": {}
       },
-      "id": "b9ccf1f5-40d1-453b-aa6c-daf5e414ac1b",
-      "name": "Read Sprint Goals",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [
-        448,
-        0
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -78,6 +85,14 @@
       }
     },
     {
+      "id": "faca97f3-2283-4d30-969d-c8ec3ee14d97",
+      "name": "Read Inbox",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        0
+      ],
       "parameters": {
         "resource": "databasePage",
         "operation": "getAll",
@@ -88,16 +103,9 @@
           "cachedResultName": "Inbox"
         },
         "returnAll": true,
+        "simple": true,
         "options": {}
       },
-      "id": "faca97f3-2283-4d30-969d-c8ec3ee14d97",
-      "name": "Read Inbox",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [
-        672,
-        0
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -106,6 +114,14 @@
       }
     },
     {
+      "id": "16285449-ebd6-425c-a071-7dc90218d6f0",
+      "name": "Read System Status",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        0
+      ],
       "parameters": {
         "resource": "databasePage",
         "operation": "getAll",
@@ -116,16 +132,9 @@
           "cachedResultName": "System Status"
         },
         "returnAll": true,
+        "simple": true,
         "options": {}
       },
-      "id": "16285449-ebd6-425c-a071-7dc90218d6f0",
-      "name": "Read System Status",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [
-        896,
-        0
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -134,9 +143,6 @@
       }
     },
     {
-      "parameters": {
-        "jsCode": "const within = (d) => d && (Date.now() - new Date(d).getTime()) <= 6*60000;\nconst lt = (r) => r.json.property_last_touched && r.json.property_last_touched.start;\nconst lu = (r) => r.json.property_last_updated && r.json.property_last_updated.start;\nconst nm = (r) => r.json.property_name || r.json.name || '';\nconst lines = [];\nfor (const r of $('Read Projects').all()) if (within(lt(r))) lines.push('Projects: ' + nm(r));\nfor (const r of $('Read Sprint Goals').all()) if (within(lt(r))) lines.push('Sprint Goals: ' + nm(r));\nfor (const r of $('Read Inbox').all()) if (within(lt(r))) lines.push('Inbox: ' + nm(r));\nconst status = $('Read System Status').all();\nfor (const r of status) {\n  if ((r.json.property_item_type || '') !== 'Dashboard Card') continue;\n  if (r.json.property_active !== true) continue;\n  if (nm(r) === 'Recent Changes') continue;\n  if (within(lu(r))) lines.push('System Status: ' + nm(r));\n}\nconst rc = status.find(r => nm(r) === 'Recent Changes');\nconst prev = (rc && rc.json.property_details ? String(rc.json.property_details).split('\\n').filter(Boolean) : []);\nconst active = lines.length > 0;\nconst combined = active ? [...lines, ...prev].slice(0, 10).join('\\n') : prev.join('\\n');\nreturn [{ json: { active, details: combined } }];"
-      },
       "id": "92cc10ed-2f6e-49af-a89c-c1f0f75b18a0",
       "name": "Collect Changes",
       "type": "n8n-nodes-base.code",
@@ -144,9 +150,21 @@
       "position": [
         1120,
         0
-      ]
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const within = (d) => d && (Date.now() - new Date(d).getTime()) <= 6*60000;\nconst lt = (r) => r.json.property_last_touched && r.json.property_last_touched.start;\nconst lu = (r) => r.json.property_last_updated && r.json.property_last_updated.start;\nconst nm = (r) => r.json.property_name || r.json.name || '';\nconst lines = [];\nfor (const r of $('Read Projects').all()) if (within(lt(r))) lines.push('Projects: ' + nm(r));\nfor (const r of $('Read Sprint Goals').all()) if (within(lt(r))) lines.push('Sprint Goals: ' + nm(r));\nfor (const r of $('Read Inbox').all()) if (within(lt(r))) lines.push('Inbox: ' + nm(r));\nconst status = $('Read System Status').all();\nfor (const r of status) {\n  if ((r.json.property_item_type || '') !== 'Dashboard Card') continue;\n  if (r.json.property_active !== true) continue;\n  if (nm(r) === 'Recent Changes') continue;\n  if (within(lu(r))) lines.push('System Status: ' + nm(r));\n}\nconst rc = status.find(r => nm(r) === 'Recent Changes');\nconst prev = (rc && rc.json.property_details ? String(rc.json.property_details).split('\\n').filter(Boolean) : []);\nconst active = lines.length > 0;\nconst combined = active ? [...lines, ...prev].slice(0, 10).join('\\n') : prev.join('\\n');\nreturn [{ json: { active, details: combined } }];"
+      }
     },
     {
+      "id": "16276d4e-97b5-43f7-9c7d-b990a8cc37b1",
+      "name": "Update Recent Changes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1344,
+        0
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "https://api.notion.com/v1/pages/3821a0ad-6469-8151-8f4e-e3295f10398f",
@@ -157,14 +175,6 @@
         "jsonBody": "={\n  \"properties\": {\n    \"Active\": { \"checkbox\": {{ $('Collect Changes').item.json.active }} },\n    \"Details\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $('Collect Changes').item.json.details.replace(/\\n/g, '\\\\n') }}\" } } ] },\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
         "options": {}
       },
-      "id": "16276d4e-97b5-43f7-9c7d-b990a8cc37b1",
-      "name": "Update Recent Changes",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.3,
-      "position": [
-        1344,
-        0
-      ],
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -173,7 +183,6 @@
       }
     }
   ],
-  "pinData": {},
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -242,18 +251,287 @@
       ]
     }
   },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate",
     "availableInMCP": true
   },
-  "versionId": "dd19ea22-74a2-4205-b11e-3f77a1987af8",
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
   "meta": {
     "aiBuilderAssisted": true,
-    "builderVariant": "mcp",
-    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+    "builderVariant": "mcp"
   },
-  "id": "U7ZiaZm8N3POzkHP",
+  "pinData": null,
+  "versionId": "dd19ea22-74a2-4205-b11e-3f77a1987af8",
+  "activeVersionId": "dd19ea22-74a2-4205-b11e-3f77a1987af8",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-06-17T23:02:10.066Z",
+      "createdAt": "2026-06-17T23:02:10.066Z",
+      "role": "workflow:owner",
+      "workflowId": "U7ZiaZm8N3POzkHP",
+      "projectId": "rHH3woewt9mPybP5"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-06-17T23:02:10.067Z",
+    "createdAt": "2026-06-17T23:02:10.067Z",
+    "versionId": "dd19ea22-74a2-4205-b11e-3f77a1987af8",
+    "workflowId": "U7ZiaZm8N3POzkHP",
+    "nodes": [
+      {
+        "id": "c65b50a7-2e41-4bad-950d-c79759f90573",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 */5 * * * *"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "3eedcf46-8896-4206-bd89-cc992031e333",
+        "name": "Read Projects",
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "resource": "databasePage",
+          "operation": "getAll",
+          "databaseId": {
+            "__rl": true,
+            "value": "37f1a0ad-6469-8063-b0ff-ff52690140ba",
+            "mode": "id",
+            "cachedResultName": "Projects"
+          },
+          "returnAll": true,
+          "simple": true,
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "id": "b9ccf1f5-40d1-453b-aa6c-daf5e414ac1b",
+        "name": "Read Sprint Goals",
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "resource": "databasePage",
+          "operation": "getAll",
+          "databaseId": {
+            "__rl": true,
+            "value": "37b1a0ad-6469-8040-8ff5-d5e619079a08",
+            "mode": "id",
+            "cachedResultName": "Sprint Goals"
+          },
+          "returnAll": true,
+          "simple": true,
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "id": "faca97f3-2283-4d30-969d-c8ec3ee14d97",
+        "name": "Read Inbox",
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "resource": "databasePage",
+          "operation": "getAll",
+          "databaseId": {
+            "__rl": true,
+            "value": "37a1a0ad-6469-807e-9a01-c71a0f36b1c1",
+            "mode": "id",
+            "cachedResultName": "Inbox"
+          },
+          "returnAll": true,
+          "simple": true,
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "id": "16285449-ebd6-425c-a071-7dc90218d6f0",
+        "name": "Read System Status",
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          896,
+          0
+        ],
+        "parameters": {
+          "resource": "databasePage",
+          "operation": "getAll",
+          "databaseId": {
+            "__rl": true,
+            "value": "3801a0ad-6469-8057-8548-f73c84267fdd",
+            "mode": "id",
+            "cachedResultName": "System Status"
+          },
+          "returnAll": true,
+          "simple": true,
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "id": "92cc10ed-2f6e-49af-a89c-c1f0f75b18a0",
+        "name": "Collect Changes",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const within = (d) => d && (Date.now() - new Date(d).getTime()) <= 6*60000;\nconst lt = (r) => r.json.property_last_touched && r.json.property_last_touched.start;\nconst lu = (r) => r.json.property_last_updated && r.json.property_last_updated.start;\nconst nm = (r) => r.json.property_name || r.json.name || '';\nconst lines = [];\nfor (const r of $('Read Projects').all()) if (within(lt(r))) lines.push('Projects: ' + nm(r));\nfor (const r of $('Read Sprint Goals').all()) if (within(lt(r))) lines.push('Sprint Goals: ' + nm(r));\nfor (const r of $('Read Inbox').all()) if (within(lt(r))) lines.push('Inbox: ' + nm(r));\nconst status = $('Read System Status').all();\nfor (const r of status) {\n  if ((r.json.property_item_type || '') !== 'Dashboard Card') continue;\n  if (r.json.property_active !== true) continue;\n  if (nm(r) === 'Recent Changes') continue;\n  if (within(lu(r))) lines.push('System Status: ' + nm(r));\n}\nconst rc = status.find(r => nm(r) === 'Recent Changes');\nconst prev = (rc && rc.json.property_details ? String(rc.json.property_details).split('\\n').filter(Boolean) : []);\nconst active = lines.length > 0;\nconst combined = active ? [...lines, ...prev].slice(0, 10).join('\\n') : prev.join('\\n');\nreturn [{ json: { active, details: combined } }];"
+        }
+      },
+      {
+        "id": "16276d4e-97b5-43f7-9c7d-b990a8cc37b1",
+        "name": "Update Recent Changes",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          1344,
+          0
+        ],
+        "parameters": {
+          "method": "PATCH",
+          "url": "https://api.notion.com/v1/pages/3821a0ad-6469-8151-8f4e-e3295f10398f",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"properties\": {\n    \"Active\": { \"checkbox\": {{ $('Collect Changes').item.json.active }} },\n    \"Details\": { \"rich_text\": [ { \"text\": { \"content\": \"{{ $('Collect Changes').item.json.details.replace(/\\n/g, '\\\\n') }}\" } } ] },\n    \"Last Updated\": { \"date\": { \"start\": \"{{ $now.toISO() }}\" } }\n  }\n}",
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Read Projects",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Projects": {
+        "main": [
+          [
+            {
+              "node": "Read Sprint Goals",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Sprint Goals": {
+        "main": [
+          [
+            {
+              "node": "Read Inbox",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Inbox": {
+        "main": [
+          [
+            {
+              "node": "Read System Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read System Status": {
+        "main": [
+          [
+            {
+              "node": "Collect Changes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Collect Changes": {
+        "main": [
+          [
+            {
+              "node": "Update Recent Changes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Jeff Balenton",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
   "tags": []
 }
