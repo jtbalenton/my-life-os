@@ -1,5 +1,10 @@
 {
+  "updatedAt": "2026-06-25T15:16:34.610Z",
+  "createdAt": "2026-06-16T00:46:22.890Z",
+  "id": "tvxybXzG3YmpsbbU",
   "name": "W-QCAP",
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -12,14 +17,14 @@
           ]
         }
       },
+      "id": "be91d7f4-38e4-4813-b3c2-3ae87b4a0a18",
+      "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [
         0,
         0
-      ],
-      "id": "b8b6fe2f-ad60-46d8-b3b3-2a44a93c4aca",
-      "name": "Schedule Trigger"
+      ]
     },
     {
       "parameters": {
@@ -31,14 +36,14 @@
           "mode": "id"
         }
       },
+      "id": "e8c3a600-de46-4562-bada-89920e6b7f69",
+      "name": "Get many child blocks",
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        208,
+        224,
         0
       ],
-      "id": "b62e7bed-4df2-4a3a-97df-6126fc9f8cc3",
-      "name": "Get many child blocks",
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -48,17 +53,96 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const block = item.json;\n  \n  if (\n    block.type === 'paragraph' &&\n    block.content &&\n    block.content.trim() !== ''\n  ) {\n    output.push({\n      json: {\n        text: block.content.trim(),\n        blockId: block.id\n      }\n    });\n  }\n}\n\nreturn output;\n"
+        "jsCode": "const items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const block = item.json;\n\n  if (\n    block.type === 'paragraph' &&\n    block.content &&\n    block.content.trim() !== ''\n  ) {\n    output.push({\n      json: {\n        text: block.content.trim(),\n        blockId: block.id\n      }\n    });\n  }\n}\n\nreturn output;\n"
       },
+      "id": "0653376c-6546-4d9b-998a-baae50a4b672",
+      "name": "Code in JavaScript",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        416,
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://api.notion.com/v1/blocks/{{ $json.blockId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f51c4b72-3a3c-46a3-ac81-961ebb4bbe2c",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
         0
       ],
-      "id": "6cd4eab0-7f48-4575-8bb7-c5ed81ceccba",
-      "name": "Code in JavaScript",
-      "alwaysOutputData": false
+      "credentials": {
+        "notionApi": {
+          "id": "AvmXQWvJBf0m2k5W",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-haiku-4-5-20251001"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $(\"Code in JavaScript\").item.json.text }}"
+            }
+          ]
+        },
+        "options": {
+          "system": "You split voice-dictated capture text into discrete items. The input is one block of dictated text that may contain several separate thoughts, tasks, reminders, or notes run together with little or no punctuation. Rules: (1) Split into separate items only where there are genuinely distinct captures; a single coherent thought stays as ONE item. (2) Honor self-corrections: if the speaker corrects themselves (\"call the dentist, no wait, the orthodontist\"), keep only the corrected version. (3) Strip filler words (um, uh, like, you know) and dictation artifacts; fix obvious homophones (to/two/too, their/there/they’re) and add light punctuation/capitalization for readability. (4) Do NOT invent, summarize, or editorialize—preserve the speaker’s meaning and wording. Output ONLY a JSON array of strings, one per item, with no markdown, no code fences, no preamble. Example output: [\"Call the orthodontist tomorrow\",\"Buy milk and eggs\",\"Idea: niche the Upwork listing toward ADHD founders\"]. If the input is a single item, return a one-element array.",
+          "maxTokens": 1024,
+          "temperature": 0
+        }
+      },
+      "id": "ecde15b0-2373-4afd-bb29-4e11ace99061",
+      "name": "Split Dictation (LLM)",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        896,
+        0
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "HLPFtgYG97bb8ssQ",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the LLM JSON array and emit one item per capture.\nfunction extractText(j) {\n  if (Array.isArray(j.content) && j.content[0] && typeof j.content[0].text === 'string') {\n    return j.content[0].text;\n  }\n  if (typeof j.text === 'string') return j.text;\n  if (typeof j.response === 'string') return j.response;\n  if (typeof j.message === 'string') return j.message;\n  if (typeof j.content === 'string') return j.content;\n  return JSON.stringify(j);\n}\n\nconst out = [];\n\nfor (const item of $input.all()) {\n  let raw = extractText(item.json);\n\n  const cleaned = String(raw)\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n\n  let pieces;\n  try {\n    pieces = JSON.parse(cleaned);\n    if (!Array.isArray(pieces)) pieces = [String(pieces)];\n  } catch (e) {\n    pieces = [cleaned];\n  }\n\n  pieces = pieces\n    .map(p => (typeof p === 'string' ? p.trim() : String(p).trim()))\n    .filter(p => p.length > 0);\n\n  if (pieces.length === 0) continue;\n\n  const total = pieces.length;\n  pieces.forEach((p, idx) => {\n    out.push({\n      json: {\n        text: p,\n        isFirstOfBlock: idx === 0,\n        splitCount: total\n      }\n    });\n  });\n}\n\nreturn out;\n"
+      },
+      "id": "920a1268-80e8-4d07-96e8-e51c5619d6ee",
+      "name": "Explode Split Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ]
     },
     {
       "parameters": {
@@ -78,7 +162,7 @@
             },
             {
               "key": "Routing Status|select",
-              "selectValue": "Ambigous\n"
+              "selectValue": "Ambiguous"
             },
             {
               "key": "Suggested Destination|select",
@@ -86,7 +170,7 @@
             },
             {
               "key": "Created Via|select",
-              "selectValue": "=Quick Capture"
+              "selectValue": "Quick Capture"
             },
             {
               "key": "Last Touched|date",
@@ -96,14 +180,14 @@
         },
         "options": {}
       },
+      "id": "9902e595-f7b3-4a5a-bce9-0f92e3d82e6d",
+      "name": "Create a database page",
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        608,
-        -64
+        1344,
+        0
       ],
-      "id": "d0086998-dacd-4c25-9c4c-51948cdbe675",
-      "name": "Create a database page",
       "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
@@ -111,34 +195,6 @@
           "name": "Notion account"
         }
       }
-    },
-    {
-      "parameters": {
-        "method": "DELETE",
-        "url": "=https://api.notion.com/v1/blocks/{{ $('Code in JavaScript').item.json.blockId }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer ntn_d69906852891K6SFLSkRu1L2aFtxwPTIZKVoTwDuhTB7q8"
-            },
-            {
-              "name": "Notion-Version",
-              "value": "2022-06-28"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
-      "position": [
-        816,
-        -64
-      ],
-      "id": "7ba8cf47-53ab-4de9-8f99-07c823f406d3",
-      "name": "HTTP Request"
     },
     {
       "parameters": {
@@ -159,14 +215,15 @@
         },
         "options": {}
       },
+      "id": "e5c50772-8ec4-4c4f-938c-5197da4a1bc3",
+      "name": "Update a database page",
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        1024,
-        -64
+        1568,
+        0
       ],
-      "id": "1562f019-ac5a-4028-bc08-e499abfe2688",
-      "name": "Update a database page",
+      "executeOnce": true,
       "credentials": {
         "notionApi": {
           "id": "AvmXQWvJBf0m2k5W",
@@ -175,7 +232,6 @@
       }
     }
   ],
-  "pinData": {},
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -203,17 +259,6 @@
       "main": [
         [
           {
-            "node": "Create a database page",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create a database page": {
-      "main": [
-        [
-          {
             "node": "HTTP Request",
             "type": "main",
             "index": 0
@@ -225,6 +270,39 @@
       "main": [
         [
           {
+            "node": "Split Dictation (LLM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Dictation (LLM)": {
+      "main": [
+        [
+          {
+            "node": "Explode Split Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Explode Split Items": {
+      "main": [
+        [
+          {
+            "node": "Create a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a database page": {
+      "main": [
+        [
+          {
             "node": "Update a database page",
             "type": "main",
             "index": 0
@@ -233,16 +311,348 @@
       ]
     }
   },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": true
   },
-  "versionId": "4249c4aa-bbff-488f-8786-34125bca5f82",
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "d0c991d4ea9fb6441b00eb4eda4bc1655ef58946b745a8084687fc382cec3564"
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
   },
-  "id": "tvxybXzG3YmpsbbU",
+  "pinData": {},
+  "versionId": "ddfbe1c1-b7c1-474e-bf71-76c0eb87d4e0",
+  "activeVersionId": "ddfbe1c1-b7c1-474e-bf71-76c0eb87d4e0",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-06-16T00:46:22.894Z",
+      "createdAt": "2026-06-16T00:46:22.894Z",
+      "role": "workflow:owner",
+      "workflowId": "tvxybXzG3YmpsbbU",
+      "projectId": "rHH3woewt9mPybP5"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-06-25T15:16:34.611Z",
+    "createdAt": "2026-06-25T15:16:34.611Z",
+    "versionId": "ddfbe1c1-b7c1-474e-bf71-76c0eb87d4e0",
+    "workflowId": "tvxybXzG3YmpsbbU",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 */20 * * * *"
+              }
+            ]
+          }
+        },
+        "id": "be91d7f4-38e4-4813-b3c2-3ae87b4a0a18",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "resource": "block",
+          "operation": "getAll",
+          "blockId": {
+            "__rl": true,
+            "value": "3801a0ad-6469-802a-b776-cf12b74589a1",
+            "mode": "id"
+          }
+        },
+        "id": "e8c3a600-de46-4562-bada-89920e6b7f69",
+        "name": "Get many child blocks",
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          224,
+          0
+        ],
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const block = item.json;\n\n  if (\n    block.type === 'paragraph' &&\n    block.content &&\n    block.content.trim() !== ''\n  ) {\n    output.push({\n      json: {\n        text: block.content.trim(),\n        blockId: block.id\n      }\n    });\n  }\n}\n\nreturn output;\n"
+        },
+        "id": "0653376c-6546-4d9b-998a-baae50a4b672",
+        "name": "Code in JavaScript",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "method": "DELETE",
+          "url": "=https://api.notion.com/v1/blocks/{{ $json.blockId }}",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Notion-Version",
+                "value": "2022-06-28"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "f51c4b72-3a3c-46a3-ac81-961ebb4bbe2c",
+        "name": "HTTP Request",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [
+          672,
+          0
+        ],
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "modelId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "claude-haiku-4-5-20251001"
+          },
+          "messages": {
+            "values": [
+              {
+                "content": "={{ $(\"Code in JavaScript\").item.json.text }}"
+              }
+            ]
+          },
+          "options": {
+            "system": "You split voice-dictated capture text into discrete items. The input is one block of dictated text that may contain several separate thoughts, tasks, reminders, or notes run together with little or no punctuation. Rules: (1) Split into separate items only where there are genuinely distinct captures; a single coherent thought stays as ONE item. (2) Honor self-corrections: if the speaker corrects themselves (\"call the dentist, no wait, the orthodontist\"), keep only the corrected version. (3) Strip filler words (um, uh, like, you know) and dictation artifacts; fix obvious homophones (to/two/too, their/there/they’re) and add light punctuation/capitalization for readability. (4) Do NOT invent, summarize, or editorialize—preserve the speaker’s meaning and wording. Output ONLY a JSON array of strings, one per item, with no markdown, no code fences, no preamble. Example output: [\"Call the orthodontist tomorrow\",\"Buy milk and eggs\",\"Idea: niche the Upwork listing toward ADHD founders\"]. If the input is a single item, return a one-element array.",
+            "maxTokens": 1024,
+            "temperature": 0
+          }
+        },
+        "id": "ecde15b0-2373-4afd-bb29-4e11ace99061",
+        "name": "Split Dictation (LLM)",
+        "type": "@n8n/n8n-nodes-langchain.anthropic",
+        "typeVersion": 1,
+        "position": [
+          896,
+          0
+        ],
+        "credentials": {
+          "anthropicApi": {
+            "id": "HLPFtgYG97bb8ssQ",
+            "name": "Anthropic account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// Parse the LLM JSON array and emit one item per capture.\nfunction extractText(j) {\n  if (Array.isArray(j.content) && j.content[0] && typeof j.content[0].text === 'string') {\n    return j.content[0].text;\n  }\n  if (typeof j.text === 'string') return j.text;\n  if (typeof j.response === 'string') return j.response;\n  if (typeof j.message === 'string') return j.message;\n  if (typeof j.content === 'string') return j.content;\n  return JSON.stringify(j);\n}\n\nconst out = [];\n\nfor (const item of $input.all()) {\n  let raw = extractText(item.json);\n\n  const cleaned = String(raw)\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n\n  let pieces;\n  try {\n    pieces = JSON.parse(cleaned);\n    if (!Array.isArray(pieces)) pieces = [String(pieces)];\n  } catch (e) {\n    pieces = [cleaned];\n  }\n\n  pieces = pieces\n    .map(p => (typeof p === 'string' ? p.trim() : String(p).trim()))\n    .filter(p => p.length > 0);\n\n  if (pieces.length === 0) continue;\n\n  const total = pieces.length;\n  pieces.forEach((p, idx) => {\n    out.push({\n      json: {\n        text: p,\n        isFirstOfBlock: idx === 0,\n        splitCount: total\n      }\n    });\n  });\n}\n\nreturn out;\n"
+        },
+        "id": "920a1268-80e8-4d07-96e8-e51c5619d6ee",
+        "name": "Explode Split Items",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "resource": "databasePage",
+          "databaseId": {
+            "__rl": true,
+            "value": "37a1a0ad-6469-807e-9a01-c71a0f36b1c1",
+            "mode": "list",
+            "cachedResultName": "Inbox",
+            "cachedResultUrl": "https://app.notion.com/p/37a1a0ad6469807e9a01c71a0f36b1c1"
+          },
+          "propertiesUi": {
+            "propertyValues": [
+              {
+                "key": "Name|title",
+                "title": "={{ $json.text }}"
+              },
+              {
+                "key": "Routing Status|select",
+                "selectValue": "Ambiguous"
+              },
+              {
+                "key": "Suggested Destination|select",
+                "selectValue": "Uncategorized"
+              },
+              {
+                "key": "Created Via|select",
+                "selectValue": "Quick Capture"
+              },
+              {
+                "key": "Last Touched|date",
+                "date": "={{ $now.toISO() }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "9902e595-f7b3-4a5a-bce9-0f92e3d82e6d",
+        "name": "Create a database page",
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          1344,
+          0
+        ],
+        "alwaysOutputData": true,
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "resource": "databasePage",
+          "operation": "update",
+          "pageId": {
+            "__rl": true,
+            "value": "https://app.notion.com/p/W-QCAP-3801a0ad646980039fdbe0abee3fcdbf",
+            "mode": "url"
+          },
+          "propertiesUi": {
+            "propertyValues": [
+              {
+                "key": "Last Updated|date",
+                "date": "={{ $now.toISO() }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "e5c50772-8ec4-4c4f-938c-5197da4a1bc3",
+        "name": "Update a database page",
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2.2,
+        "position": [
+          1568,
+          0
+        ],
+        "executeOnce": true,
+        "credentials": {
+          "notionApi": {
+            "id": "AvmXQWvJBf0m2k5W",
+            "name": "Notion account"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get many child blocks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get many child blocks": {
+        "main": [
+          [
+            {
+              "node": "Code in JavaScript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code in JavaScript": {
+        "main": [
+          [
+            {
+              "node": "HTTP Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP Request": {
+        "main": [
+          [
+            {
+              "node": "Split Dictation (LLM)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Dictation (LLM)": {
+        "main": [
+          [
+            {
+              "node": "Explode Split Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Explode Split Items": {
+        "main": [
+          [
+            {
+              "node": "Create a database page",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create a database page": {
+        "main": [
+          [
+            {
+              "node": "Update a database page",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Jeff Balenton",
+    "name": null,
+    "description": null,
+    "autosaved": true
+  },
   "tags": []
 }
